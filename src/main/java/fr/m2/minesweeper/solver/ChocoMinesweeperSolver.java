@@ -1,13 +1,14 @@
 package fr.m2.minesweeper.solver;
 
-import fr.m2.minesweeper.model.MinesweeperInstance;
-import fr.m2.minesweeper.util.GridPrinter;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.variables.BoolVar;
 
-import java.util.ArrayList;
-import java.util.List;
+import fr.m2.minesweeper.model.MinesweeperInstance;
+import fr.m2.minesweeper.util.GridPrinter;
 
 /**
  * Construit et résout le modèle CSP du Démineur dans Choco.
@@ -16,7 +17,8 @@ public class ChocoMinesweeperSolver {
 
     /**
      * Résout une instance de Démineur.
-     * - Si une solution existe : affiche UNE configuration de mines (0/1).
+     * - Si une solution existe : affiche UNE configuration de mines (0/1)
+     *   et vérifie qu'elle respecte bien tous les indices.
      * - Sinon : affiche qu'il n'y a aucune configuration compatible.
      */
     public void solveOnce(MinesweeperInstance instance) {
@@ -31,9 +33,7 @@ public class ChocoMinesweeperSolver {
         // 2) Variables : une booléenne par case (1 = mine, 0 = pas de mine)
         BoolVar[][] mines = model.boolVarMatrix("m", rows, cols);
 
-        // 3) Contraintes :
-        //    pour chaque case révélée (clues[r][c] != null),
-        //    la somme des mines dans les cases voisines doit égaler ce chiffre.
+        // 3) Contraintes : pour chaque case révélée, somme des voisins = indice
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 if (clues[r][c] != null) {
@@ -59,7 +59,7 @@ public class ChocoMinesweeperSolver {
             return;
         }
 
-        // 6) Récupération et affichage de la solution
+        // 6) Récupération de la solution
         int[][] sol = new int[rows][cols];
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
@@ -69,11 +69,65 @@ public class ChocoMinesweeperSolver {
 
         System.out.println("Une configuration de mines trouvée (1 = mine, 0 = pas de mine) :");
         GridPrinter.printIntGrid(sol);
+
+        // 7) Vérification de la solution par rapport aux indices
+        verifySolution(sol, clues);
     }
 
     /**
-     * Renvoie les variables BoolVar des voisins (8-connexes) d'une case (r,c),
-     * en respectant les bords de la grille.
+     * Vérifie que la solution respecte bien tous les indices fournis.
+     */
+    private void verifySolution(int[][] sol, Integer[][] clues) {
+        int rows = sol.length;
+        int cols = sol[0].length;
+        boolean ok = true;
+
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (clues[r][c] != null) {
+                    int expected = clues[r][c];
+                    int actual = countAdjacentMines(sol, r, c);
+                    if (expected != actual) {
+                        System.out.println("⚠ Incohérence trouvée en (" + r + "," + c + ") : "
+                                + "indice = " + expected + ", mines voisines = " + actual);
+                        ok = false;
+                    }
+                }
+            }
+        }
+
+        if (ok) {
+            System.out.println("✅ Solution vérifiée : toutes les contraintes sont satisfaites.");
+        } else {
+            System.out.println("❌ La solution ne respecte pas tous les indices (voir messages ci-dessus).");
+        }
+    }
+
+    /**
+     * Compte les mines voisines dans la solution (8-connexes) autour de (r,c).
+     */
+    private int countAdjacentMines(int[][] sol, int r, int c) {
+        int rows = sol.length;
+        int cols = sol[0].length;
+        int count = 0;
+
+        for (int dr = -1; dr <= 1; dr++) {
+            for (int dc = -1; dc <= 1; dc++) {
+                if (dr == 0 && dc == 0) continue;
+                int rr = r + dr;
+                int cc = c + dc;
+                if (rr >= 0 && rr < rows && cc >= 0 && cc < cols) {
+                    if (sol[rr][cc] == 1) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Renvoie les variables BoolVar des voisins (8-connexes) d'une case (r,c).
      */
     private BoolVar[] getNeighbors(BoolVar[][] mines, int r, int c) {
         int rows = mines.length;
