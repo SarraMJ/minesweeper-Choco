@@ -10,10 +10,27 @@ import org.chocosolver.solver.variables.BoolVar;
 import fr.m2.minesweeper.model.MinesweeperInstance;
 import fr.m2.minesweeper.util.GridPrinter;
 
+
+
 /**
  * Construit et résout le modèle CSP du Démineur dans Choco.
  */
 public class ChocoMinesweeperSolver {
+        /**
+     * Petit conteneur pour résumer le résultat d'une expérience :
+     * - numberOfSolutions : nombre de solutions trouvées (jusqu'à maxSolutions)
+     * - timeMs : temps total d'énumération en millisecondes
+     */
+    public static class ExperimentResult {
+        public final int numberOfSolutions;
+        public final long timeMs;
+
+        public ExperimentResult(int numberOfSolutions, long timeMs) {
+            this.numberOfSolutions = numberOfSolutions;
+            this.timeMs = timeMs;
+        }
+    }
+
 
     /**
      * Résout une instance de Démineur.
@@ -141,6 +158,55 @@ public class ChocoMinesweeperSolver {
             System.out.println("Temps total d'énumération : " + (t1 - t0) + " ms");
         }
     }
+        /**
+     * Version "silencieuse" pour les expériences :
+     * - ne fait PAS d'affichage des solutions
+     * - ne fait que compter les solutions (jusqu'à maxSolutions)
+     * - mesure le temps total
+     */
+    public ExperimentResult enumerateForExperiment(MinesweeperInstance instance, int maxSolutions) {
+        int rows = instance.getRows();
+        int cols = instance.getCols();
+        Integer[][] clues = instance.getClues();
+        Integer totalMines = instance.getTotalMines();
+
+        Model model = new Model("Minesweeper CSP (experiment)");
+        BoolVar[][] mines = model.boolVarMatrix("m", rows, cols);
+
+        // Contraintes comme avant
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (clues[r][c] != null) {
+                    int clue = clues[r][c];
+                    BoolVar[] neighbors = getNeighbors(mines, r, c);
+                    model.sum(neighbors, "=", clue).post();
+                }
+            }
+        }
+
+        if (totalMines != null) {
+            BoolVar[] flat = flatten(mines);
+            model.sum(flat, "=", totalMines).post();
+        }
+
+        Solver solver = model.getSolver();
+
+        int solutionCount = 0;
+        long t0 = System.currentTimeMillis();
+
+        while (solver.solve()) {
+            solutionCount++;
+            if (solutionCount >= maxSolutions) {
+                break; // on arrête l'énumération dès qu'on atteint la limite
+            }
+        }
+
+        long t1 = System.currentTimeMillis();
+        long timeMs = (t1 - t0);
+
+        return new ExperimentResult(solutionCount, timeMs);
+    }
+
 
 
     /**
@@ -232,3 +298,4 @@ public class ChocoMinesweeperSolver {
         return flat;
     }
 }
+
