@@ -73,6 +73,75 @@ public class ChocoMinesweeperSolver {
         // 7) Vérification de la solution par rapport aux indices
         verifySolution(sol, clues);
     }
+        /**
+     * Énumère jusqu'à maxSolutions solutions pour une instance donnée.
+     * - Affiche chaque configuration trouvée.
+     * - Vérifie chaque solution.
+     * - Affiche le nombre total de solutions explorées (jusqu'à maxSolutions).
+     */
+    public void enumerateSolutions(MinesweeperInstance instance, int maxSolutions) {
+        int rows = instance.getRows();
+        int cols = instance.getCols();
+        Integer[][] clues = instance.getClues();
+        Integer totalMines = instance.getTotalMines();
+
+        // 1) Création du modèle
+        Model model = new Model("Minesweeper CSP (enumeration)");
+
+        // 2) Variables
+        BoolVar[][] mines = model.boolVarMatrix("m", rows, cols);
+
+        // 3) Contraintes (identiques à solveOnce)
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (clues[r][c] != null) {
+                    int clue = clues[r][c];
+                    BoolVar[] neighbors = getNeighbors(mines, r, c);
+                    model.sum(neighbors, "=", clue).post();
+                }
+            }
+        }
+
+        if (totalMines != null) {
+            BoolVar[] flat = flatten(mines);
+            model.sum(flat, "=", totalMines).post();
+        }
+
+        Solver solver = model.getSolver();
+
+        int solutionCount = 0;
+        long t0 = System.currentTimeMillis();
+
+        // 4) Boucle d'énumération
+        while (solver.solve()) {
+            solutionCount++;
+
+            System.out.println("=== Solution #" + solutionCount + " ===");
+            int[][] sol = new int[rows][cols];
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    sol[r][c] = mines[r][c].getValue();
+                }
+            }
+            GridPrinter.printIntGrid(sol);
+            verifySolution(sol, clues);
+
+            if (solutionCount >= maxSolutions) {
+                System.out.println("Arrêt : limite de " + maxSolutions + " solutions atteinte.");
+                break;
+            }
+        }
+
+        long t1 = System.currentTimeMillis();
+
+        if (solutionCount == 0) {
+            System.out.println("Aucune configuration compatible avec les indices.");
+        } else {
+            System.out.println("Nombre de solutions trouvées (<= " + maxSolutions + ") : " + solutionCount);
+            System.out.println("Temps total d'énumération : " + (t1 - t0) + " ms");
+        }
+    }
+
 
     /**
      * Vérifie que la solution respecte bien tous les indices fournis.

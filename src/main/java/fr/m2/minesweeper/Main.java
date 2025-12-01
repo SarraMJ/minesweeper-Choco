@@ -12,11 +12,12 @@ public class Main {
         //MinesweeperInstance instance = MinesweeperInstance.smallExample();
 
         // 1) Créer une instance complète 16x16
-        MinesweeperInstance full = MinesweeperInstance.random16x16(42L);
+       // MinesweeperInstance full = MinesweeperInstance.random16x16(42L);
+        MinesweeperInstance full = MinesweeperInstance.random8x8(42L);
 
         // 2) Créer une version partiellement révélée
         //    ici on garde 40% des indices (tu peux jouer avec ce paramètre)
-        MinesweeperInstance partial = full.withRandomHiding(0.4, 123L);
+        MinesweeperInstance partial = full.withRandomHiding(0.5, 123L);
 
         // 3) Afficher la grille d'indices visibles pour comprendre ce qu'on envoie au solveur
         System.out.println("Grille d'indices visibles ('.' = rien / inconnu) :");
@@ -24,7 +25,9 @@ public class Main {
 
         // 4) Lancer la résolution avec Choco sur la grille partielle
         ChocoMinesweeperSolver solver = new ChocoMinesweeperSolver();
-        solver.solveOnce(partial);
+        //solver.solveOnce(partial);
+        solver.enumerateSolutions(partial, 20);  // par ex. max 20 solutions
+
     }
 
     private static void printClues(MinesweeperInstance instance) {
@@ -42,4 +45,5 @@ public class Main {
             System.out.println();
         }
     }
+    
 }
