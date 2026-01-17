@@ -1,0 +1,19 @@
+{
+  "rows": 12,
+  "cols": 12,
+  "clues": [
+    [null, null, 2, null, null, null, 2, 0, 0, 1, null, 2],
+    [null, null, null, 3, null, null, null, 1, 0, 1, 2, null],
+    [3, 3, null, null, 3, null, null, 2, null, null, 2, null],
+    [null, null, null, 1, 1, 2, null, 4, 2, null, null, null],
+    [null, null, null, null, 2, 3, 5, null, null, 2, 1, null],
+    [null, null, null, null, null, null, null, null, 3, null, 0, 0],
+    [1, 2, 3, 3, 4, null, null, 4, 3, null, 1, null],
+    [null, null, 3, null, 3, 2, null, null, null, null, null, 2],
+    [0, 1, null, null, null, null, null, null, 3, 2, null, null],
+    [1, null, 3, 3, null, null, null, null, 1, null, 1, 1],
+    [null, 2, null, null, 5, 4, null, 3, 3, 2, 1, null],
+    [null, null, null, null, null, null, null, null, null, null, 1, null]
+  ],
+  "total_mines": 42
+}

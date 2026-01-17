@@ -1,294 +1,190 @@
 package fr.m2.minesweeper.solver;
 
+import fr.m2.minesweeper.model.MinesweeperInstance;
+import org.chocosolver.solver.Model;
+import org.chocosolver.solver.Solution;
+import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.search.strategy.Search;
+import org.chocosolver.solver.variables.IntVar;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import org.chocosolver.solver.Model;
-import org.chocosolver.solver.Solver;
-import org.chocosolver.solver.variables.BoolVar;
-
-import fr.m2.minesweeper.model.MinesweeperInstance;
-import fr.m2.minesweeper.util.GridPrinter;
-
-
-
-/**
- * Construit et résout le modèle CSP du Démineur dans Choco.
- */
 public class ChocoMinesweeperSolver {
-        /**
-     * Petit conteneur pour résumer le résultat d'une expérience :
-     * - numberOfSolutions : nombre de solutions trouvées (jusqu'à maxSolutions)
-     * - timeMs : temps total d'énumération en millisecondes
-     */
+
+    public enum Strategy {
+        DEFAULT,          // ordre d'entrée + LB (0 puis 1)
+        WDEG_MINE_FIRST   // domOverWDeg + essayer 1 avant 0
+    }
+
     public static class ExperimentResult {
         public final int numberOfSolutions;
         public final long timeMs;
+        public final boolean timeoutReached;
 
-        public ExperimentResult(int numberOfSolutions, long timeMs) {
+        public ExperimentResult(int numberOfSolutions, long timeMs, boolean timeoutReached) {
             this.numberOfSolutions = numberOfSolutions;
             this.timeMs = timeMs;
+            this.timeoutReached = timeoutReached;
         }
     }
-
 
     /**
-     * Résout une instance de Démineur.
-     * - Si une solution existe : affiche UNE configuration de mines (0/1)
-     *   et vérifie qu'elle respecte bien tous les indices.
-     * - Sinon : affiche qu'il n'y a aucune configuration compatible.
+     * Trouver UNE solution (démo).
      */
-    public void solveOnce(MinesweeperInstance instance) {
-        int rows = instance.getRows();
-        int cols = instance.getCols();
-        Integer[][] clues = instance.getClues();
-        Integer totalMines = instance.getTotalMines();
-
-        // 1) Création du modèle
-        Model model = new Model("Minesweeper CSP");
-
-        // 2) Variables : une booléenne par case (1 = mine, 0 = pas de mine)
-        BoolVar[][] mines = model.boolVarMatrix("m", rows, cols);
-
-        // 3) Contraintes : pour chaque case révélée, somme des voisins = indice
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                if (clues[r][c] != null) {
-                    int clue = clues[r][c];
-                    BoolVar[] neighbors = getNeighbors(mines, r, c);
-                    model.sum(neighbors, "=", clue).post();
-                }
-            }
-        }
-
-        // 4) (Optionnel) contrainte sur le nombre total de mines
-        if (totalMines != null) {
-            BoolVar[] flat = flatten(mines);
-            model.sum(flat, "=", totalMines).post();
-        }
-
-        // 5) Résolution
-        Solver solver = model.getSolver();
-        boolean exists = solver.solve();
-
-        if (!exists) {
-            System.out.println("Aucune configuration compatible avec les indices.");
-            return;
-        }
-
-        // 6) Récupération de la solution
-        int[][] sol = new int[rows][cols];
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                sol[r][c] = mines[r][c].getValue();
-            }
-        }
-
-        System.out.println("Une configuration de mines trouvée (1 = mine, 0 = pas de mine) :");
-        GridPrinter.printIntGrid(sol);
-
-        // 7) Vérification de la solution par rapport aux indices
-        verifySolution(sol, clues);
-    }
-        /**
-     * Énumère jusqu'à maxSolutions solutions pour une instance donnée.
-     * - Affiche chaque configuration trouvée.
-     * - Vérifie chaque solution.
-     * - Affiche le nombre total de solutions explorées (jusqu'à maxSolutions).
-     */
-    public void enumerateSolutions(MinesweeperInstance instance, int maxSolutions) {
-        int rows = instance.getRows();
-        int cols = instance.getCols();
-        Integer[][] clues = instance.getClues();
-        Integer totalMines = instance.getTotalMines();
-
-        // 1) Création du modèle
-        Model model = new Model("Minesweeper CSP (enumeration)");
-
-        // 2) Variables
-        BoolVar[][] mines = model.boolVarMatrix("m", rows, cols);
-
-        // 3) Contraintes (identiques à solveOnce)
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                if (clues[r][c] != null) {
-                    int clue = clues[r][c];
-                    BoolVar[] neighbors = getNeighbors(mines, r, c);
-                    model.sum(neighbors, "=", clue).post();
-                }
-            }
-        }
-
-        if (totalMines != null) {
-            BoolVar[] flat = flatten(mines);
-            model.sum(flat, "=", totalMines).post();
-        }
+    public int[][] solveOne(MinesweeperInstance inst, Strategy strategy) {
+        Model model = new Model("Minesweeper");
+        IntVar[][] mines = buildModel(model, inst, true); // boosters ON
 
         Solver solver = model.getSolver();
+        applyStrategy(solver, mines, strategy);
 
-        int solutionCount = 0;
-        long t0 = System.currentTimeMillis();
+        Solution sol = solver.findSolution();
+        if (sol == null) return null;
 
-        // 4) Boucle d'énumération
-        while (solver.solve()) {
-            solutionCount++;
+        int rows = inst.getRows();
+        int cols = inst.getCols();
 
-            System.out.println("=== Solution #" + solutionCount + " ===");
-            int[][] sol = new int[rows][cols];
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-                    sol[r][c] = mines[r][c].getValue();
-                }
-            }
-            GridPrinter.printIntGrid(sol);
-            verifySolution(sol, clues);
-
-            if (solutionCount >= maxSolutions) {
-                System.out.println("Arrêt : limite de " + maxSolutions + " solutions atteinte.");
-                break;
-            }
-        }
-
-        long t1 = System.currentTimeMillis();
-
-        if (solutionCount == 0) {
-            System.out.println("Aucune configuration compatible avec les indices.");
-        } else {
-            System.out.println("Nombre de solutions trouvées (<= " + maxSolutions + ") : " + solutionCount);
-            System.out.println("Temps total d'énumération : " + (t1 - t0) + " ms");
-        }
-    }
-        /**
-     * Version "silencieuse" pour les expériences :
-     * - ne fait PAS d'affichage des solutions
-     * - ne fait que compter les solutions (jusqu'à maxSolutions)
-     * - mesure le temps total
-     */
-    public ExperimentResult enumerateForExperiment(MinesweeperInstance instance, int maxSolutions) {
-        int rows = instance.getRows();
-        int cols = instance.getCols();
-        Integer[][] clues = instance.getClues();
-        Integer totalMines = instance.getTotalMines();
-
-        Model model = new Model("Minesweeper CSP (experiment)");
-        BoolVar[][] mines = model.boolVarMatrix("m", rows, cols);
-
-        // Contraintes comme avant
+        int[][] grid = new int[rows][cols];
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                if (clues[r][c] != null) {
-                    int clue = clues[r][c];
-                    BoolVar[] neighbors = getNeighbors(mines, r, c);
-                    model.sum(neighbors, "=", clue).post();
-                }
+                grid[r][c] = sol.getIntVal(mines[r][c]);
             }
         }
-
-        if (totalMines != null) {
-            BoolVar[] flat = flatten(mines);
-            model.sum(flat, "=", totalMines).post();
-        }
-
-        Solver solver = model.getSolver();
-
-        int solutionCount = 0;
-        long t0 = System.currentTimeMillis();
-
-        while (solver.solve()) {
-            solutionCount++;
-            if (solutionCount >= maxSolutions) {
-                break; // on arrête l'énumération dès qu'on atteint la limite
-            }
-        }
-
-        long t1 = System.currentTimeMillis();
-        long timeMs = (t1 - t0);
-
-        return new ExperimentResult(solutionCount, timeMs);
+        return grid;
     }
-
-
 
     /**
-     * Vérifie que la solution respecte bien tous les indices fournis.
+     * Énumération pour expériences (limite maxSolutions + time limit).
      */
-    private void verifySolution(int[][] sol, Integer[][] clues) {
-        int rows = sol.length;
-        int cols = sol[0].length;
-        boolean ok = true;
+    public ExperimentResult enumerateForExperiment(MinesweeperInstance inst,
+                                                   int maxSolutions,
+                                                   Strategy strategy,
+                                                   String timeLimit) {
+
+        long start = System.currentTimeMillis();
+
+        Model model = new Model("Minesweeper");
+        IntVar[][] mines = buildModel(model, inst, true); // boosters ON
+
+        Solver solver = model.getSolver();
+        if (timeLimit != null && !timeLimit.isBlank()) {
+            solver.limitTime(timeLimit);
+        }
+
+        applyStrategy(solver, mines, strategy);
+
+        int count = 0;
+        while (solver.solve()) {
+            count++;
+            if (count >= maxSolutions) break;
+        }
+
+        long end = System.currentTimeMillis();
+        boolean timeoutReached = solver.isStopCriterionMet();
+
+        return new ExperimentResult(count, end - start, timeoutReached);
+    }
+
+    // -----------------------------
+    //        MODEL BUILDING
+    // -----------------------------
+
+    private IntVar[][] buildModel(Model model, MinesweeperInstance inst, boolean addBoosters) {
+
+        int rows = inst.getRows();
+        int cols = inst.getCols();
+        Integer[][] clues = inst.getClues();
+        Integer totalMines = inst.getTotalMines();
+
+        IntVar[][] mine = new IntVar[rows][cols];
+        List<IntVar> allVars = new ArrayList<>(rows * cols);
 
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                if (clues[r][c] != null) {
-                    int expected = clues[r][c];
-                    int actual = countAdjacentMines(sol, r, c);
-                    if (expected != actual) {
-                        System.out.println("⚠ Incohérence trouvée en (" + r + "," + c + ") : "
-                                + "indice = " + expected + ", mines voisines = " + actual);
-                        ok = false;
+                mine[r][c] = model.intVar("m_" + r + "_" + c, 0, 1);
+                allVars.add(mine[r][c]);
+            }
+        }
+
+        // Contraintes indices révélés
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                Integer clue = clues[r][c];
+                if (clue == null) continue;
+
+                List<IntVar> neigh = neighbors(mine, rows, cols, r, c);
+                IntVar[] neighArr = neigh.toArray(new IntVar[0]);
+
+                model.sum(neighArr, "=", clue).post();
+
+                // ---------------- Boosters propagation ----------------
+                if (addBoosters) {
+                    // clue==0 => tous voisins = 0
+                    if (clue == 0) {
+                        for (IntVar v : neighArr) model.arithm(v, "=", 0).post();
+                    }
+
+                    // clue==deg => tous voisins = 1
+                    if (clue == neighArr.length) {
+                        for (IntVar v : neighArr) model.arithm(v, "=", 1).post();
                     }
                 }
             }
         }
 
-        if (ok) {
-            System.out.println("✅ Solution vérifiée : toutes les contraintes sont satisfaites.");
-        } else {
-            System.out.println("❌ La solution ne respecte pas tous les indices (voir messages ci-dessus).");
+        // total mines connu ?
+        if (totalMines != null) {
+            model.sum(allVars.toArray(new IntVar[0]), "=", totalMines).post();
         }
+
+        return mine;
     }
 
-    /**
-     * Compte les mines voisines dans la solution (8-connexes) autour de (r,c).
-     */
-    private int countAdjacentMines(int[][] sol, int r, int c) {
-        int rows = sol.length;
-        int cols = sol[0].length;
-        int count = 0;
-
+    private List<IntVar> neighbors(IntVar[][] mine, int rows, int cols, int r, int c) {
+        List<IntVar> neigh = new ArrayList<>();
         for (int dr = -1; dr <= 1; dr++) {
             for (int dc = -1; dc <= 1; dc++) {
                 if (dr == 0 && dc == 0) continue;
                 int rr = r + dr;
                 int cc = c + dc;
-                if (rr >= 0 && rr < rows && cc >= 0 && cc < cols) {
-                    if (sol[rr][cc] == 1) {
-                        count++;
-                    }
+                if (0 <= rr && rr < rows && 0 <= cc && cc < cols) {
+                    neigh.add(mine[rr][cc]);
                 }
             }
         }
-        return count;
+        return neigh;
     }
 
-    /**
-     * Renvoie les variables BoolVar des voisins (8-connexes) d'une case (r,c).
-     */
-    private BoolVar[] getNeighbors(BoolVar[][] mines, int r, int c) {
-        int rows = mines.length;
-        int cols = mines[0].length;
-        List<BoolVar> list = new ArrayList<>(8);
+    // -----------------------------
+    //        STRATEGIES
+    // -----------------------------
 
-        for (int dr = -1; dr <= 1; dr++) {
-            for (int dc = -1; dc <= 1; dc++) {
-                if (dr == 0 && dc == 0) continue; // ignorer la case centrale
-                int rr = r + dr;
-                int cc = c + dc;
-                if (rr >= 0 && rr < rows && cc >= 0 && cc < cols) {
-                    list.add(mines[rr][cc]);
-                }
-            }
+    private void applyStrategy(Solver solver, IntVar[][] mines, Strategy strategy) {
+        IntVar[] flat = flatten(mines);
+    
+        switch (strategy) {
+            case DEFAULT:
+                // ordre d'entrée, essayer 0 puis 1
+                solver.setSearch(Search.inputOrderLBSearch(flat));
+                break;
+    
+            case WDEG_MINE_FIRST:
+                // Version COMPATIBLE : "fail-first" (petit domaine d'abord)
+                // et essayer 1 avant 0 (UB sur bool)
+                solver.setSearch(Search.minDomUBSearch(flat));
+                break;
+    
+            default:
+                solver.setSearch(Search.inputOrderLBSearch(flat));
         }
-        return list.toArray(new BoolVar[0]);
     }
+    
 
-    /**
-     * Aplati une matrice 2D de BoolVar en un tableau 1D.
-     */
-    private BoolVar[] flatten(BoolVar[][] mines) {
+    private IntVar[] flatten(IntVar[][] mines) {
         int rows = mines.length;
         int cols = mines[0].length;
-        BoolVar[] flat = new BoolVar[rows * cols];
+        IntVar[] flat = new IntVar[rows * cols];
         int k = 0;
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
@@ -298,4 +194,3 @@ public class ChocoMinesweeperSolver {
         return flat;
     }
 }
-

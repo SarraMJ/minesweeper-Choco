@@ -1,6 +1,7 @@
 # instance.py
 import random
-from typing import List, Optional, Tuple
+import json
+from typing import List, Optional
 
 GridInt = List[List[int]]
 GridOptInt = List[List[Optional[int]]]
@@ -15,6 +16,27 @@ class MinesweeperInstance:
         self.clues = clues
         self.total_mines = total_mines
 
+    # ------------------------------------------------------------------
+    # NOUVEAU : lecture d'une instance exportée par Choco (JSON)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def from_json(path: str) -> "MinesweeperInstance":
+        """
+        Charge une instance EXACTEMENT telle que générée par Choco.
+        """
+        with open(path, "r") as f:
+            data = json.load(f)
+
+        return MinesweeperInstance(
+            rows=data["rows"],
+            cols=data["cols"],
+            clues=data["clues"],
+            total_mines=data["total_mines"]
+        )
+
+    # ------------------------------------------------------------------
+    # Le reste est conservé (utile pour tests / anciennes expériences)
+    # ------------------------------------------------------------------
     @staticmethod
     def _count_adjacent_mines(mines: GridInt, r: int, c: int) -> int:
         rows = len(mines)
