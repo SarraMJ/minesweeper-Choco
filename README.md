@@ -16,14 +16,12 @@ Pour reproduire l'intégralité du benchmark depuis la racine du projet, suivez 
 
 ### 1. Nettoyage des données existantes (Optionnel)
 Pour supprimer les anciennes instances, les résultats CSV et les graphiques avant une nouvelle exécution :
-```bash
 rm -f data/instances/*.json data/results/*.csv reports/*.png reports/*.csv 2>/dev/null
 rm -f minesweeper-local-search/*.csv 2>/dev/null
 
 ### 2. Génération et Résolution Complète (Java)
 Cette étape compile le projet, génère les grilles aléatoires et lance les solveurs Java.
 
-```bash
 mvn clean compile
 mvn exec:java -Dexec.mainClass="fr.m2.minesweeper.ExperimentRunner"
 
@@ -32,7 +30,6 @@ Les instances sont créées dans data/instances/ et les résultats complets dans
 ### 3. Résolution Locale (Python)
 Lance les algorithmes de recherche locale sur les grilles précédemment générées.
 
-```bash
 cd minesweeper-local-search
 python experiments_local.py
 cd ..
@@ -42,7 +39,6 @@ Les résultats sont écrits dans minesweeper-local-search/results_local.csv.
 ### 4. Analyse et Rapport
 Génère les graphiques comparatifs basés sur les temps d'exécution et les taux de succès.
 
-```bash
 python make_report.py
 Les rapports finaux sont consultables dans le dossier reports/.
 
