@@ -90,7 +90,7 @@ def main():
 
             run_solvers_on_instance(inst, filename, writer)
 
-    print("\n✅ results_local.csv généré")
+    print("\n results_local.csv généré")
 
 
 if __name__ == "__main__":

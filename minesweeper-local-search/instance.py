@@ -16,9 +16,6 @@ class MinesweeperInstance:
         self.clues = clues
         self.total_mines = total_mines
 
-    # ------------------------------------------------------------------
-    # NOUVEAU : lecture d'une instance exportée par Choco (JSON)
-    # ------------------------------------------------------------------
     @staticmethod
     def from_json(path: str) -> "MinesweeperInstance":
         """
@@ -34,9 +31,7 @@ class MinesweeperInstance:
             total_mines=data["total_mines"]
         )
 
-    # ------------------------------------------------------------------
-    # Le reste est conservé (utile pour tests / anciennes expériences)
-    # ------------------------------------------------------------------
+
     @staticmethod
     def _count_adjacent_mines(mines: GridInt, r: int, c: int) -> int:
         rows = len(mines)

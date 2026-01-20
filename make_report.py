@@ -197,7 +197,7 @@ def main():
     plot_metric(final_df, "success_rate", os.path.join(REPORT_DIR, "plot_success.png"), "Taux de Succès", "Success Rate (0-1)")
     plot_metric(final_df, "avg_time_ms", os.path.join(REPORT_DIR, "plot_time.png"), "Temps d'exécution", "Time (ms)")
     
-    print(f"✅ Rapport généré avec succès dans le dossier '{REPORT_DIR}'")
+    print(f"Rapport généré avec succès dans le dossier '{REPORT_DIR}'")
 
 if __name__ == "__main__":
     main()

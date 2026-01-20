@@ -1,4 +1,3 @@
-# main.py
 from instance import MinesweeperInstance
 from local_search import hill_climbing, cost
 
@@ -28,9 +27,9 @@ def main():
     print(f"\nCoût final = {final_cost}")
 
     if final_cost == 0:
-        print("✅ configuration cohérente trouvée")
+        print("configuration cohérente trouvée")
     else:
-        print("⚠ pas de solution parfaite trouvée (mais peut-être proche)")
+        print("pas de solution parfaite trouvée (mais peut-être proche)")
 
 
 if __name__ == "__main__":

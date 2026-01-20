@@ -63,9 +63,7 @@ def flip_cell(sol: GridInt, r: int, c: int) -> None:
     sol[r][c] = 1 - sol[r][c]
 
 
-# ---------------------------------------------------------------------
-# Baseline : Hill-Climbing simple (ta version)
-# ---------------------------------------------------------------------
+# Baseline : Hill-Climbing simple
 def hill_climbing(inst: MinesweeperInstance,
                   max_iters: int = 20_000,
                   seed: int = 0) -> Tuple[GridInt, int]:
@@ -98,9 +96,8 @@ def hill_climbing(inst: MinesweeperInstance,
     return sol, current_cost
 
 
-# ---------------------------------------------------------------------
+
 # Amélioration 1 : Hill-Climbing + random-walk + random restarts
-# ---------------------------------------------------------------------
 def hill_climbing_with_restarts(inst: MinesweeperInstance,
                                 max_iters: int = 20_000,
                                 seed: int = 0,
@@ -154,10 +151,7 @@ def hill_climbing_with_restarts(inst: MinesweeperInstance,
     assert best_sol is not None
     return best_sol, best_cost
 
-
-# ---------------------------------------------------------------------
 # Amélioration 2 : Simulated Annealing (recuit simulé)
-# ---------------------------------------------------------------------
 def simulated_annealing(inst: MinesweeperInstance,
                         max_iters: int = 100_000,
                         seed: int = 0,
