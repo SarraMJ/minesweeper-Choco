@@ -9,18 +9,18 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // 1) Générer une instance complète puis masquer
+        // Générer une instance complète puis masquer
         MinesweeperInstance full = MinesweeperInstance.random8x8(42L);
         MinesweeperInstance partial = full.withRandomHiding(0.5, 123L);
 
-        // 2) Afficher la grille d'indices visibles
+        // Afficher la grille d'indices visibles
         System.out.println("Grille d'indices visibles ('.' = rien / inconnu) :");
         printClues(partial);
 
-        // 3) Solveur Choco
+        // Solveur Choco
         ChocoMinesweeperSolver solver = new ChocoMinesweeperSolver();
 
-        // === A) Trouver UNE solution (démo) ===
+        
         System.out.println("\n--- SolveOne avec stratégie DEFAULT ---");
         int[][] sol = solver.solveOne(partial, Strategy.DEFAULT);
         if (sol == null) {
@@ -29,7 +29,7 @@ public class Main {
             printMines(sol);
         }
 
-        // === B) Énumérer des solutions (expérience) ===
+        
         System.out.println("\n--- Énumération (max 20 solutions) ---");
         ExperimentResult res = solver.enumerateForExperiment(
                 partial,

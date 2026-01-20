@@ -75,9 +75,9 @@ public class ExperimentRunner {
                         String instancePath = "data/instances/" + instanceFile;
                         partial.exportToJson(instancePath);
 
-                        // ----------------------------
+                        
                         // Méthode complète #1 : CHOCO
-                        // ----------------------------
+                    
                         for (Strategy strat : chocoStrategies) {
 
                             ExperimentResult res = choco.enumerateForExperiment(
@@ -105,9 +105,9 @@ public class ExperimentRunner {
                             );
                         }
 
-                        // -----------------------------------------
+                       
                         // Méthode complète #2 : BACKTRACKING + FC
-                        // -----------------------------------------
+                        
                         BacktrackingMinesweeperSolver.Result btRes =
                                 bt.enumerate(partial, maxSolutions, timeLimit);
 
