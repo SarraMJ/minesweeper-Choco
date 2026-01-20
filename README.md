@@ -46,6 +46,7 @@ Génère les graphiques comparatifs basés sur les temps d'exécution et les tau
 python make_report.py
 Les rapports finaux sont consultables dans le dossier reports/.
 
+---
 ## Détails des Algorithmes implémentés
 Méthodes Complètes (Java)
 Choco Solver : Utilise la propagation de contraintes et l'heuristique de choix de variable WDEG (Weighted Degree).
