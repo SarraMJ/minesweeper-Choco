@@ -6,12 +6,6 @@ import java.util.*;
 
 /**
  * Solveur COMPLET (backtracking) avec propagation par bornes (forward-checking):
- * - variables: mine[r][c] ∈ {0,1}
- * - contraintes:
- *     1) pour chaque indice révélé: somme(voisins) == clue
- *     2) (optionnel) somme totale des mines == totalMines
- *
- * "Complet" = si on ne met pas de limite temps/solutions, il explore tout l'espace (avec pruning).
  */
 public class BacktrackingMinesweeperSolver {
 
@@ -103,11 +97,11 @@ public class BacktrackingMinesweeperSolver {
     }
 
     private boolean backtrack() {
-        // stop criteria
+        
         if (deadlineMs != 0 && System.currentTimeMillis() > deadlineMs) return true; // timeout
         if (maxSolutions > 0 && solutions >= maxSolutions) return false;
 
-        // all assigned ?
+        
         if (assignedCount == rows * cols) {
             // final check global mines
             if (totalMines == null || assignedMines == totalMines) {
@@ -117,7 +111,7 @@ public class BacktrackingMinesweeperSolver {
             return false;
         }
 
-        // choose next var (heuristic: highest degree, tie -> random stable)
+        // choose next var 
         int[] cell = selectUnassignedCell();
         int r = cell[0], c = cell[1];
 
@@ -160,13 +154,9 @@ public class BacktrackingMinesweeperSolver {
 
     /**
      * Check all clue constraints affected: for each revealed clue cell,
-     * let S = sum(assigned mines among its neighbors)
-     * let U = number of unassigned neighbors
-     * then must have: clue in [S, S+U]
      */
     private boolean isConsistentAfterAssign(int rr, int cc) {
-        // fast approach: check all clue cells (simple + OK sizes 8/12)
-        // you can optimize by checking only around (rr,cc), but not needed.
+        
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 Integer clue = clues[r][c];
@@ -186,13 +176,11 @@ public class BacktrackingMinesweeperSolver {
                 // upper bound
                 if (assignedSum + unassigned < clue) return false;
 
-                // optional: if clue==0 or clue==deg, we could force neighbors,
-                // but bounds already capture it (still good).
+            
             }
         }
 
-        // also global mines feasibility (already checked in canAssignGlobal for chosen cell,
-        // but we must ensure feasibility after assignments in general)
+    
         if (totalMines != null) {
             int remaining = rows * cols - assignedCount;
             int minPossible = assignedMines;

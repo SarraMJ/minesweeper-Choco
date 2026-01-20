@@ -30,7 +30,7 @@ public class ChocoMinesweeperSolver {
     }
 
     /**
-     * Trouver UNE solution (démo).
+     * Trouver UNE solution.
      */
     public int[][] solveOne(MinesweeperInstance inst, Strategy strategy) {
         Model model = new Model("Minesweeper");
@@ -86,9 +86,7 @@ public class ChocoMinesweeperSolver {
         return new ExperimentResult(count, end - start, timeoutReached);
     }
 
-    // -----------------------------
-    //        MODEL BUILDING
-    // -----------------------------
+  
 
     private IntVar[][] buildModel(Model model, MinesweeperInstance inst, boolean addBoosters) {
 
@@ -118,7 +116,7 @@ public class ChocoMinesweeperSolver {
 
                 model.sum(neighArr, "=", clue).post();
 
-                // ---------------- Boosters propagation ----------------
+            
                 if (addBoosters) {
                     // clue==0 => tous voisins = 0
                     if (clue == 0) {
@@ -156,10 +154,7 @@ public class ChocoMinesweeperSolver {
         return neigh;
     }
 
-    // -----------------------------
-    //        STRATEGIES
-    // -----------------------------
-
+   
     private void applyStrategy(Solver solver, IntVar[][] mines, Strategy strategy) {
         IntVar[] flat = flatten(mines);
     
@@ -170,8 +165,7 @@ public class ChocoMinesweeperSolver {
                 break;
     
             case WDEG_MINE_FIRST:
-                // Version COMPATIBLE : "fail-first" (petit domaine d'abord)
-                // et essayer 1 avant 0 (UB sur bool)
+              
                 solver.setSearch(Search.minDomUBSearch(flat));
                 break;
     
